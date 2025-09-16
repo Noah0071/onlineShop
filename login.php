@@ -36,93 +36,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>เข้าสู่ระบบ</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css">
-    <style>
-        body {
-            background: linear-gradient(120deg, #edf2ffff 0%, #b6ccffff 100%);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            min-height: 100vh;
-        }
-        .login-card {
-            max-width: 420px;
-            margin: auto;
-            margin-top: 90px;
-            padding: 38px 32px 32px 32px;
-            background: #fff;
-            border-radius: 22px;
-            box-shadow: 0px 12px 32px rgba(30,63,145,0.09);
-        }
-        .login-card h3 {
-            text-align: center;
-            margin-bottom: 28px;
-            font-weight: 700;
-            color: #222e3a;
-            letter-spacing: 0.5px;
-        }
-        .form-label {
-            font-weight: 500;
-            color: #222e3a;
-        }
-        .form-control {
-            border-radius: 12px;
-            padding: 12px;
-            font-size: 1.08em;
-        }
-        .btn-primary {
-            width: 100%;
-            border-radius: 12px;
-            background: linear-gradient(90deg,#3349a4 60%,#5e7be2 100%);
-            border: none;
-            font-weight: 600;
-            padding: 12px;
-            font-size: 1.08em;
-            box-shadow: 0 2px 8px #3349a430;
-        }
-        .btn-primary:hover {
-            background: #3349a4;
-        }
-        .btn-link {
-            display: block;
-            text-align: center;
-            margin-top: 14px;
-            color: #3349a4;
-            font-weight: 500;
-            font-size: 1.04em;
-        }
-        .btn-link:hover {
-            color: #222e3a;
-        }
-        .alert {
-            max-width: 420px;
-            margin: 20px auto;
-            border-radius: 12px;
-            font-size: 1.08em;
-        }
-    </style>
+<style>
+  :root{ --bg:#f6f7fb; --ink:#0f172a; --muted:#64748b; --card:#ffffffcc; --stroke:#e6e8ef; --brand:#5b8cff; --brand2:#8b5bff; }
+  html,body{height:100%}
+  body{ margin:0;background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai","Prompt",Arial,sans-serif; }
+  .bg-abstract{ position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(1200px 600px at -10% -10%, #e0e7ff 0%, transparent 65%),
+      radial-gradient(900px 500px at 110% 10%, #ffe4e6 0%, transparent 60%),
+      radial-gradient(900px 500px at 20% 110%, #dcfce7 0%, transparent 60%);
+  }
+  .bg-abstract::after{ content:""; position:absolute; inset:0; background:conic-gradient(from 210deg at 40% 30%, #9cc1ff33, #b7a1ff33, #ffb1d433, #9cc1ff33 75%); filter:blur(28px); opacity:.6; }
+  .page{ min-height:100svh; display:grid; place-items:center; padding:24px; }
+  .card-glass{ width:min(720px,96vw); background:var(--card); backdrop-filter:blur(12px); border:1px solid var(--stroke); border-radius:24px; box-shadow:0 12px 36px rgba(15,23,42,.12); overflow:hidden; }
+  .head{ padding:22px 22px 12px; border-bottom:1px solid rgba(15,23,42,.06);}
+  .title{ margin:0; font-weight:900; letter-spacing:.2px; background:linear-gradient(135deg,var(--brand),var(--brand2)); -webkit-background-clip:text; background-clip:text; color:transparent; font-size:clamp(1.2rem,.9rem+1.2vw,1.8rem);}
+  .sub{ margin:6px 0 0; color:var(--muted);}
+  .body{ padding:22px;}
+  .form-label{ font-weight:700; color:#1f2937;}
+  .form-control{ background:#fff; border:1px solid #dfe3f3; color:#0f172a;}
+  .form-control::placeholder{ color:#9aa3b8;}
+  .form-control:focus{ border-color:#b9c7ff; box-shadow:0 0 0 .25rem rgba(91,140,255,.18);}
+  .btn-brand{ background:linear-gradient(135deg,var(--brand),var(--brand2)); border:none; color:#fff; font-weight:800; box-shadow:0 10px 24px rgba(91,140,255,.25);}
+  .btn-brand:hover{ filter:brightness(1.05);}
+  .alert{ border-radius:14px; border:1px solid #ffe1e1; background:#fff5f5; color:#b42318;}
+</style>
+
 </head>
 <body>
-    <?php if (isset($_GET['register']) && $_GET['register'] === 'success'): ?>
-        <div class="alert alert-success text-center shadow-sm"> ✅ สมัครสมาชิกสำเร็จ กรุณาเข้าสู่ระบบ </div>
-    <?php endif; ?>
-    <?php if (!empty($error)): ?>
-        <div class="alert alert-danger text-center shadow-sm">❌ <?= htmlspecialchars($error) ?></div>
-    <?php endif; ?>
-    <div class="login-card">
-        <h3>🔑 เข้าสู่ระบบ</h3>
-        <form method="post" class="row g-3">
-            <div class="col-12">
-                <label for="username_or_email" class="form-label">ชื่อผู้ใช้หรืออีเมล</label>
-                <input type="text" name="username_or_email" id="username_or_email" class="form-control" required>
-            </div>
-            <div class="col-12">
-                <label for="password" class="form-label">รหัสผ่าน</label>
-                <input type="password" name="password" id="password" class="form-control" required>
-            </div>
-            <div class="col-12">
-                <button type="submit" class="btn btn-primary">เข้าสู่ระบบ</button>
-                <a href="register.php" class="btn btn-link">สมัครสมาชิก</a>
-            </div>
-        </form>
+<div class="bg-abstract"></div>
+
+<div class="page">
+  <div class="card-glass">
+    <div class="head">
+      <h1 class="title">เข้าสู่ระบบ</h1>
+      <p class="sub">กรอกชื่อผู้ใช้หรืออีเมลและรหัสผ่านเพื่อเข้าใช้งาน</p>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+
+    <div class="body">
+      <?php if (!empty($error)): ?>
+        <div class="alert mb-3">
+          <?php if (is_array($error)): ?>
+            <ul class="mb-0">
+              <?php foreach ($error as $e): ?>
+                <li><?= htmlspecialchars($e, ENT_QUOTES, 'UTF-8') ?></li>
+              <?php endforeach; ?>
+            </ul>
+          <?php else: ?>
+            <?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?>
+          <?php endif; ?>
+        </div>
+      <?php endif; ?>
+
+      <!-- เปลี่ยนเฉพาะชื่อฟิลด์ให้ตรงกับหลังบ้าน -->
+      <form method="post" autocomplete="off">
+        <div class="mb-3">
+          <label for="username_or_email" class="form-label">ชื่อผู้ใช้หรืออีเมล</label>
+          <input type="text" id="username_or_email" name="username_or_email" class="form-control"
+                 placeholder="ชื่อผู้ใช้หรืออีเมล"
+                 value="<?= htmlspecialchars($_POST['username_or_email'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
+        </div>
+
+        <div class="mb-4">
+          <label for="password" class="form-label">รหัสผ่าน</label>
+          <input type="password" id="password" name="password" class="form-control" placeholder="รหัสผ่าน" required>
+        </div>
+
+        <div class="d-grid">
+          <button type="submit" class="btn btn-brand btn-lg">เข้าสู่ระบบ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 </body>
 </html>
