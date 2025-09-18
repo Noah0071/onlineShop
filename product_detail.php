@@ -17,6 +17,12 @@ if (!isset($_GET['id'])) {
 }
 
 $isLoggedIn = isset($_SESSION['user_id']);
+
+//เตรียมรูป
+$img = !empty($product['image'])
+? 'product_images/' . rawurlencode($product['image'])
+: 'product_images/no-image.jpg';
+
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -122,6 +128,9 @@ $isLoggedIn = isset($_SESSION['user_id']);
   <a href="index.php" class="btn-back">← กลับหน้ารายการสินค้า</a>
 
   <div class="detail-card">
+
+  <img src="<?= $img ?>">
+
     <h3><?= htmlspecialchars($product['product_name']) ?></h3>
     <h6>หมวดหมู่: <?= htmlspecialchars($product['category_name']) ?></h6>
 

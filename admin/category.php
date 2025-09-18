@@ -120,7 +120,7 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY category_id ASC")
       box-shadow:0 10px 24px rgba(91,140,255,.25);
     }
     .btn-ghost{
-      border:1px solid #dfe3f3; background:#fff; font-weight:700; color:#334155;
+      border:1px solid #dfe3f3; background: linear-gradient(135deg, var(--brand), var(--brand2)); font-weight:700; color:black;
     }
 
     /* กล่องบล็อก (ฟอร์ม/ตาราง) */

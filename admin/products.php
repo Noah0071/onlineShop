@@ -3,55 +3,106 @@
 require '../config.php';
 require 'auth_admin.php'; // ต้องเป็นแอดมินเท่านั้น
 
+$errors = [];
+
 // ---------- เพิ่มสินค้าใหม่ ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_product'])) {
-  $name        = trim($_POST['product_name'] ?? '');
-  $description = trim($_POST['description'] ?? '');
-  $price       = isset($_POST['price']) ? (float)$_POST['price'] : 0.0;
-  $stock       = isset($_POST['stock']) ? (int)$_POST['stock'] : 0;
-  $category_id = isset($_POST['category_id']) ? (int)$_POST['category_id'] : 0;
+    $name        = trim($_POST['product_name'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $price       = isset($_POST['price']) ? (float)$_POST['price'] : 0.0;
+    $stock       = isset($_POST['stock']) ? (int)$_POST['stock'] : 0;
+    $category_id = isset($_POST['category_id']) ? (int)$_POST['category_id'] : 0;
 
-  $errors = [];
-  if ($name === '')            $errors[] = 'กรุณากรอกชื่อสินค้า';
-  if ($price <= 0)             $errors[] = 'ราคาต้องมากกว่า 0';
-  if ($stock < 0)              $errors[] = 'จำนวนคงเหลือต้องไม่ติดลบ';
-  if ($category_id <= 0)       $errors[] = 'กรุณาเลือกหมวดหมู่สินค้า';
+    // validate เบื้องต้น
+    if ($name === '')            $errors[] = 'กรุณากรอกชื่อสินค้า';
+    if ($price <= 0)             $errors[] = 'ราคาต้องมากกว่า 0';
+    if ($stock < 0)              $errors[] = 'จำนวนคงเหลือต้องไม่ติดลบ';
+    if ($category_id <= 0)       $errors[] = 'กรุณาเลือกหมวดหมู่สินค้า';
 
-  if (!$errors) {
-    $stmt = $conn->prepare("
-      INSERT INTO products (product_name, description, price, stock, category_id)
-      VALUES (?, ?, ?, ?, ?)
-    ");
-    $stmt->execute([$name, $description, $price, $stock, $category_id]);
+    // อัปโหลดรูป (ถ้ามี)
+    $imageName = null;
+    if (!empty($_FILES['product_image']['name'])) {
+        $file = $_FILES['product_image'];
+        if ($file['error'] === UPLOAD_ERR_OK && is_uploaded_file($file['tmp_name'])) {
+            // ตรวจ mime ให้ชัดเจน
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $mime  = $finfo->file($file['tmp_name']);
+            $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png'];
+            if (!isset($allowed[$mime])) {
+                $errors[] = 'ไฟล์รูปต้องเป็น JPG หรือ PNG เท่านั้น';
+            } else {
+                $ext = $allowed[$mime];
+                $imageName = 'product_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+                $path = __DIR__ . '/../product_images/' . $imageName;
+                if (!move_uploaded_file($file['tmp_name'], $path)) {
+                    $errors[] = 'อัปโหลดรูปไม่สำเร็จ';
+                }
+            }
+        } else {
+            $errors[] = 'อัปโหลดรูปไม่สำเร็จ';
+        }
+    }
+
+    if (!$errors) {
+        $stmt = $conn->prepare("
+          INSERT INTO products (product_name, description, price, stock, category_id, image)
+          VALUES (?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->execute([$name, $description, $price, $stock, $category_id, $imageName]);
+        header("Location: products.php");
+        exit;
+    }
+}
+
+// ---------- ลบสินค้า (ลบรูปในดิสก์ด้วย) ----------
+if (isset($_GET['delete'])) {
+    $product_id = (int)$_GET['delete'];
+
+    // 1) ขอชื่อไฟล์รูปก่อน
+    $stmt = $conn->prepare("SELECT image FROM products WHERE product_id = ?");
+    $stmt->execute([$product_id]);
+    $imageName = $stmt->fetchColumn(); // อาจเป็น null
+
+    // 2) ลบใน DB ด้วย Transaction
+    try {
+        $conn->beginTransaction();
+        $del = $conn->prepare("DELETE FROM products WHERE product_id = ?");
+        $del->execute([$product_id]);
+        $conn->commit();
+    } catch (Exception $e) {
+        $conn->rollBack();
+        header("Location: products.php");
+        exit;
+    }
+
+    // 3) ลบไฟล์รูปหลัง DB ลบสำเร็จ
+    if ($imageName) {
+        $baseDir = realpath(__DIR__ . '/../product_images');
+        $filePath = realpath($baseDir . '/' . $imageName);
+        if ($filePath && strpos($filePath, $baseDir) === 0 && is_file($filePath)) {
+            @unlink($filePath);
+        }
+    }
+
     header("Location: products.php");
     exit;
-  }
 }
 
-// ---------- ลบสินค้า ----------
-if (isset($_GET['delete'])) {
-  $product_id = (int)$_GET['delete'];
-  if ($product_id > 0) {
-    $del = $conn->prepare("DELETE FROM products WHERE product_id = ?");
-    $del->execute([$product_id]);
-  }
-  header("Location: products.php");
-  exit;
-}
-
-// ---------- ดึงหมวดหมู่ทั้งหมด ----------
-$categories = $conn->query("SELECT category_id, category_name FROM categories ORDER BY category_name ASC")
-                   ->fetchAll(PDO::FETCH_ASSOC);
-
-// ---------- ดึงรายการสินค้า (join หมวดหมู่) ----------
+// ---------- ดึงรายการสินค้า (รวมคอลัมน์ image) ----------
 $stmt = $conn->query("
-  SELECT p.product_id, p.product_name, p.description, p.price, p.stock, p.created_at,
-         c.category_name
+  SELECT p.*, c.category_name
   FROM products p
   LEFT JOIN categories c ON p.category_id = c.category_id
   ORDER BY p.created_at DESC, p.product_id DESC
 ");
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// ---------- ดึงหมวดหมู่ ----------
+$categories = $conn->query("
+  SELECT category_id, category_name
+  FROM categories
+  ORDER BY category_name ASC
+")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -124,7 +175,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
       box-shadow:0 10px 24px rgba(91,140,255,.25);
     }
     .btn-ghost{
-      border:1px solid #dfe3f3; background:#fff; font-weight:700; color:#334155;
+      border:1px solid #dfe3f3; background: linear-gradient(135deg, var(--brand), var(--brand2)); font-weight:700; color:black;
     }
 
     /* การ์ดฟอร์ม + ตาราง */
@@ -155,6 +206,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
     tbody td{ vertical-align: middle; }
 
     .mb-18{ margin-bottom:18px; }
+    .thumb{ width:60px; height:60px; object-fit:cover; background:#f1f5f9; }
   </style>
 </head>
 <body>
@@ -184,7 +236,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <!-- ฟอร์มเพิ่มสินค้า -->
         <div class="block mb-18">
           <h5 class="mb-3">เพิ่มสินค้าใหม่</h5>
-          <form method="post" class="row g-3">
+          <form method="post" enctype="multipart/form-data" class="row g-3">
             <input type="hidden" name="add_product" value="1">
 
             <div class="col-md-4">
@@ -217,6 +269,11 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
               <textarea id="desc" name="description" class="form-control" rows="2" placeholder="รายละเอียดสินค้า"></textarea>
             </div>
 
+            <div class="col-md-6">
+              <label class="form-label">รูปสินค้า (JPG, PNG)</label>
+              <input type="file" name="product_image" class="form-control" accept=".jpg,.jpeg,.png,image/jpeg,image/png">
+            </div>
+
             <div class="col-12">
               <button type="submit" class="btn btn-brand">เพิ่มสินค้า</button>
             </div>
@@ -233,6 +290,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
               <table class="table table-bordered align-middle">
                 <thead class="table-light">
                   <tr>
+                    <th style="width:80px;">รูป</th> <!-- คอลัมน์รูป -->
                     <th style="min-width:220px;">ชื่อสินค้า</th>
                     <th>หมวดหมู่</th>
                     <th class="text-end">ราคา (บาท)</th>
@@ -243,6 +301,44 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <tbody>
                   <?php foreach ($products as $p): ?>
                     <tr>
+                      <td class="align-middle">
+                        <?php
+                          $baseDir = realpath(__DIR__ . '/../product_images');
+                          $imgSrc = '';
+
+                          // ใช้รูปจาก DB ถ้ามีและไฟล์อยู่จริง
+                          if (!empty($p['image'])) {
+                            $diskPath = realpath($baseDir . '/' . $p['image']);
+                            if ($diskPath && strpos($diskPath, $baseDir) === 0 && is_file($diskPath)) {
+                              $imgSrc = '../product_images/' . rawurlencode($p['image']);
+                            }
+                          }
+
+                          // ถ้าไม่พบรูป -> ใช้ no-image.png ถ้ามี, ไม่งั้นค่อยเป็น SVG
+                          if ($imgSrc === '') {
+                            $ph = realpath($baseDir . '../product_images/no-image.png');
+                            if ($ph && strpos($ph, $baseDir) === 0 && is_file($ph)) {
+                              $imgSrc = '../product_images/no-image.png';
+                            } else {
+                              $svg = '
+                                <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 60 60">
+                                  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stop-color="#e5e7eb"/><stop offset="100%" stop-color="#f1f5f9"/>
+                                  </linearGradient></defs>
+                                  <rect width="60" height="60" rx="8" fill="url(#g)"/>
+                                  <g fill="none" stroke="#9ca3af" stroke-width="2">
+                                    <rect x="12" y="16" width="36" height="28" rx="6"/>
+                                    <circle cx="24" cy="28" r="6"/>
+                                    <path d="M18 42l10-10 8 8 6-6 8 8"/>
+                                  </g>
+                                </svg>';
+                              $imgSrc = 'data:image/svg+xml;charset=UTF-8,' . rawurlencode($svg);
+                            }
+                          }
+                        ?>
+                        <img src="<?= $imgSrc ?>" alt="รูปสินค้า" class="rounded thumb"
+                            onerror="this.onerror=null;this.src='../product_images/no-image.png';">
+                      </td>
                       <td>
                         <div class="fw-semibold"><?= htmlspecialchars($p['product_name']) ?></div>
                         <?php if (!empty($p['description'])): ?>
@@ -253,7 +349,7 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
                       <td class="text-end"><?= number_format((float)$p['price'], 2) ?></td>
                       <td class="text-end"><?= (int)$p['stock'] ?></td>
                       <td>
-                        <!-- <a href="edit_product.php?id=<?= (int)$p['product_id'] ?>" class="btn btn-sm btn-warning">แก้ไข</a> -->
+                        <a href="edit_products.php?id=<?= (int)$p['product_id'] ?>" class="btn btn-sm btn-warning">แก้ไข</a>
                         <a href="products.php?delete=<?= (int)$p['product_id'] ?>"
                            class="btn btn-sm btn-danger"
                            onclick="return confirm('ยืนยันการลบสินค้านี้หรือไม่?')">ลบ</a>
