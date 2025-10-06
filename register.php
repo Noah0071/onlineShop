@@ -1,5 +1,5 @@
 <?php
-// register.php — หน้าสมัครสมาชิกโฉมใหม่ (UI ทันสมัย, ไม่เหมือนเดิม)
+require 'session_timeout.php'; 
 require_once 'config.php';
 
 $error = [];
@@ -200,7 +200,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div class="mt-4 d-grid">
-          <button type="submit" class="btn btn-brand btn-lg">สมัครสมาชิก</button>
+          <button type="submit" class="btn btn-brand btn-lg mb-1">สมัครสมาชิก</button>
+          <a href="login.php" class="btn btn-brand btn-lg">เข้าสู่ระบบ</a>
         </div>
       </form>
     </div>

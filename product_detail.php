@@ -1,5 +1,5 @@
 <?php
-session_start();
+require 'session_timeout.php'; 
 require_once 'config.php';
 
 $product_id = $_GET['id'];

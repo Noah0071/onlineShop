@@ -1,8 +1,8 @@
 <?php
-session_start(); // เริ่ม session
-require_once 'config.php'; // เชื่อมต่อฐานข้อมูล
+require 'session_timeout.php'; 
+require_once 'config.php';
 
-$isLoggedIn = isset($_SESSION['user_id']); // ตรวจสอบว่าผู้ใช้ล็อกอินแล้วหรือไม่
+$isLoggedIn = isset($_SESSION['user_id']);
 
 $stmt = $conn->query("SELECT p.*, c.category_name
     FROM products p
@@ -22,46 +22,36 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
   <style>
     :root {
       --bg:#f6f7fb; --ink:#0f172a; --muted:#64748b;
-      --card:#ffffffcc; /* glass */
+      --card:#ffffffcc;
       --stroke:#e6e8ef;
-      --brand:#5b8cff; /* ฟ้าพาสเทล */
-      --brand2:#8b5bff; /* ม่วงพาสเทล */
+      --brand:#5b8cff;
+      --brand2:#8b5bff;
     }
     html,body{height:100%}
     body{
       margin:0; background:var(--bg); color:var(--ink);
       font-family:ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", "Prompt", Arial, sans-serif;
     }
-    /* พื้นหลังนามธรรม */
-    .bg-abstract{
-      position:fixed; inset:0; z-index:-1; pointer-events:none;
+    .bg-abstract{position:fixed; inset:0; z-index:-1; pointer-events:none;
       background:
         radial-gradient(1200px 600px at -10% -10%, #e0e7ff 0%, transparent 65%),
         radial-gradient(900px 500px at 110% 10%, #ffe4e6 0%, transparent 60%),
-        radial-gradient(900px 500px at 20% 110%, #dcfce7 0%, transparent 60%);
-    }
-    .bg-abstract::after{
-      content:""; position:absolute; inset:0;
+        radial-gradient(900px 500px at 20% 110%, #dcfce7 0%, transparent 60%);}
+    .bg-abstract::after{content:""; position:absolute; inset:0;
       background:conic-gradient(from 210deg at 40% 30%, #9cc1ff33, #b7a1ff33, #ffb1d433, #9cc1ff33 75%);
-      filter:blur(28px); opacity:.6;
-    }
+      filter:blur(28px); opacity:.6;}
 
     .page{min-height:100svh; display:grid; place-items:start center; padding:24px;}
-    /* การ์ดครอบหน้า (glass) */
     .card-glass{
       width:min(1200px,96vw);
       background:var(--card); backdrop-filter:blur(12px);
       border:1px solid var(--stroke); border-radius:24px;
       box-shadow:0 12px 36px rgba(15,23,42,.12); overflow:hidden;
     }
-
-    /* ===== NAVBAR (แทนหัวเดิม) ===== */
-    .nav-glass{
-      border-bottom:1px solid rgba(15,23,42,.06);
+    .nav-glass{border-bottom:1px solid rgba(15,23,42,.06);
       background:linear-gradient(#ffffffaa,#ffffffaa);
       backdrop-filter:saturate(110%) blur(12px);
-      padding:12px 18px;
-    }
+      padding:12px 18px;}
     .navbar-brand{
       font-weight:900; letter-spacing:.2px;
       background:linear-gradient(135deg, var(--brand), var(--brand2));
@@ -69,34 +59,35 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
       font-size:clamp(1.1rem, .8rem + 1.1vw, 1.6rem);
       margin-right:10px;
     }
-    .hello-badge{
-      color:var(--muted); font-weight:700; white-space:nowrap;
-      border:1px solid #e5e7f2; border-radius:999px; padding:.35rem .7rem; background:#fff;
-    }
-    .btn-chip{
-      border:1px solid #e5e7f2; background:#fff; color:#334155; font-weight:700;
-      border-radius:999px; padding:.45rem .9rem;
-    }
+    .hello-badge{color:var(--muted); font-weight:700; white-space:nowrap;
+      border:1px solid #e5e7f2; border-radius:999px; padding:.35rem .7rem; background:#fff;}
+    .btn-chip{border:1px solid #e5e7f2; background:#fff; color:#334155; font-weight:700;
+      border-radius:999px; padding:.45rem .9rem;}
     .btn-chip:hover{background:linear-gradient(135deg,var(--brand),var(--brand2)); color:#fff; border-color:transparent;}
-    .btn-ghost{
-      border:1px solid #dfe3f3; background:#fff; color:#334155; font-weight:700;
-      border-radius:999px; padding:.45rem .9rem;
-    }
+    .btn-ghost{border:1px solid #dfe3f3; background:#fff; color:#334155; font-weight:700;
+      border-radius:999px; padding:.45rem .9rem;}
     .btn-ghost:hover{background:linear-gradient(135deg,var(--brand),var(--brand2)); color:#fff; border-color:transparent;}
 
     .body{padding:22px;}
 
-    /* ===== Product Card – Clean Minimal (คงเดิม) ===== */
-    .product-list{row-gap:18px;}
+    /* Toolbar 3 คอลัมน์: ซ้าย=ค้นหา กลาง=หมวดหมู่ ขวา=จัดเรียง+wishlist */
+    .toolbar{display:grid; grid-template-columns: 1fr minmax(220px, 320px) auto; gap:12px; align-items:center;}
+    @media (max-width: 992px){
+      .toolbar{grid-template-columns: 1fr; align-items:stretch;}
+    }
+
+    .product-list{row-gap:22px;}
     .product-card{background:#fff; border:1px solid #ebeff5; border-radius:16px;
-      box-shadow:0 6px 16px rgba(15,23,42,.06); transition:transform .12s, box-shadow .12s;
-      display:flex; flex-direction:column; overflow:hidden;}
-    .product-card:hover{transform:translateY(-2px); box-shadow:0 10px 24px rgba(15,23,42,.10);}
+      box-shadow:0 4px 12px rgba(15,23,42,.06); transition:transform .12s, box-shadow .12s;
+      display:flex; flex-direction:column; overflow:hidden; opacity:0; transform:translateY(10px);}
+    .product-card:hover{transform:translateY(0); box-shadow:0 8px 18px rgba(15,23,42,.10);}
     .thumb-wrap{position:relative;}
-    .product-thumb{width:100%; aspect-ratio:4/3; object-fit:cover; display:block; background:#f4f6fa;}
+    .product-thumb{width:100%; aspect-ratio:1/1; object-fit:cover; display:block; background:#f4f6fa;}
+    @media (min-width: 992px){ .product-thumb{ max-height:240px; } }
     .wishlist{position:absolute; right:10px; top:10px; z-index:2; width:34px; height:34px; display:grid; place-items:center;
       background:#ffffffd9; border:1px solid #e9eef8; border-radius:10px; color:#94a3b8;}
     .wishlist:hover{color:#e11d48;}
+    .wishlist.active{color:#e11d48; border-color:#ffc9d1; background:#fff5f7;}
     .card-chip{position:absolute; top:10px; left:10px; background:#eef2ff; color:#3f51b5; border:1px solid #e0e7ff;
       font-size:.72rem; padding:.2rem .5rem; border-radius:999px; box-shadow:0 2px 6px rgba(15,23,42,.08);}
     .card-chip.danger{background:#fff1f2; color:#e11d48; border-color:#ffe4e6;}
@@ -112,6 +103,17 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
     .btn-detail:hover{background:linear-gradient(135deg,var(--brand),var(--brand2)); color:#fff;}
     .btn-cart{background:linear-gradient(135deg,var(--brand),var(--brand2)); border:none; color:#fff; font-weight:800; border-radius:10px; padding:.42rem .8rem; box-shadow:0 8px 18px rgba(91,140,255,.18);}
     .btn-cart:disabled{opacity:.6; box-shadow:none;}
+
+    .skeleton{position:relative; background:#eef2ff;}
+    .skeleton::after{content:""; position:absolute; inset:0;
+      background:linear-gradient(90deg, transparent, rgba(255,255,255,.6), transparent);
+      animation:shimmer 1.2s infinite;}
+    @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+
+    .product-card.appear{opacity:1; transform:translateY(0); transition:opacity .35s ease, transform .35s ease;}
+    .nav-glass.scrolled{box-shadow:0 8px 24px rgba(15,23,42,.08);}
+
+    .toast-fixed{position:fixed; right:16px; bottom:16px; z-index:1080;}
   </style>
 </head>
 <body>
@@ -120,11 +122,9 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
   <div class="page">
     <div class="card-glass">
 
-      <!-- NAVBAR ใหม่ -->
       <nav class="navbar navbar-expand-lg nav-glass">
         <div class="container-fluid">
           <a class="navbar-brand" href="index.php">รายการสินค้า</a>
-
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav"
                   aria-controls="topNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -151,7 +151,38 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
           </div>
         </div>
       </nav>
-      <!-- จบ NAVBAR -->
+
+      <!-- TOOLBAR (3 คอลัมน์) -->
+      <div class="px-3 px-lg-4 pt-3">
+        <div class="toolbar">
+          <!-- ซ้าย: ค้นหา -->
+          <div class="d-flex gap-2 align-items-center">
+            <div class="input-group" style="max-width:480px; width:100%;">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input id="searchInput" type="text" class="form-control" placeholder="ค้นหาสินค้า...">
+            </div>
+            <span class="badge text-bg-light d-none d-lg-inline" id="resultCount">ทั้งหมด <?= count($products) ?> รายการ</span>
+          </div>
+
+          <!-- กลาง: หมวดหมู่ -->
+          <div class="d-flex">
+            <select id="catSelect" class="form-select w-100">
+              <option value="">ทุกหมวดหมู่</option>
+            </select>
+          </div>
+
+          <!-- ขวา: จัดเรียง + wishlist -->
+          <div class="d-flex gap-2 justify-content-end">
+            <select id="sortSelect" class="form-select" style="max-width:220px;">
+              <option value="new">จัดเรียง: ใหม่ล่าสุด</option>
+              <option value="priceAsc">ราคาต่ำ → สูง</option>
+              <option value="priceDesc">ราคาสูง → ต่ำ</option>
+              <option value="stockDesc">สต็อกมาก → น้อย</option>
+            </select>
+            <button class="btn btn-outline-secondary" id="wishlistToggle"><i class="bi bi-heart"></i> เฉพาะที่อยากได้</button>
+          </div>
+        </div>
+      </div>
 
       <div class="body">
         <div class="row product-list">
@@ -164,13 +195,19 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
               $full = floor($rating); $half = ($rating - $full) >= 0.5 ? 1 : 0;
             ?>
             <div class="col-12 col-sm-6 col-lg-3">
-              <div class="product-card h-100">
+              <div class="product-card h-100"
+                   data-id="<?= (int)$p['product_id'] ?>"
+                   data-name="<?= htmlspecialchars($p['product_name']) ?>"
+                   data-category="<?= htmlspecialchars($p['category_name'] ?? 'หมวดหมู่') ?>"
+                   data-price="<?= (float)$p['price'] ?>"
+                   data-created="<?= htmlspecialchars($p['created_at'] ?? '') ?>"
+                   data-stock="<?= (int)$p['stock'] ?>">
                 <div class="thumb-wrap">
                   <?php if ($isNew): ?><span class="card-chip">NEW</span>
                   <?php elseif ($isHot): ?><span class="card-chip danger">HOT</span><?php endif; ?>
 
                   <a href="product_detail.php?id=<?= (int)$p['product_id'] ?>">
-                    <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($p['product_name']) ?>" class="product-thumb">
+                    <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($p['product_name']) ?>" class="product-thumb skeleton" loading="lazy">
                   </a>
 
                   <button class="wishlist" type="button" title="เพิ่มรายการที่อยากได้">
@@ -229,6 +266,195 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
   </div>
 
+  <!-- Toast -->
+  <div class="toast align-items-center toast-fixed text-bg-dark border-0" id="liveToast" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="toastMsg">ดำเนินการสำเร็จ</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+
+  <!-- Quick View Modal -->
+  <div class="modal fade" id="quickViewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content" style="border-radius:18px;">
+        <div class="modal-header">
+          <h5 class="modal-title" id="qvTitle">รายละเอียดสินค้า</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <img id="qvImg" class="img-fluid rounded" alt="">
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="text-muted small" id="qvCategory"></div>
+              <h5 class="mt-1" id="qvName"></h5>
+              <div class="d-flex align-items-center gap-2 my-2">
+                <span class="fw-bold fs-5" id="qvPrice"></span>
+                <span class="badge text-bg-light" id="qvStock"></span>
+              </div>
+              <div class="d-flex gap-2 mt-2">
+                <a id="qvDetailLink" href="#" class="btn btn-outline-secondary">
+                  <i class="bi bi-box-arrow-up-right"></i> ไปหน้ารายละเอียด
+                </a>
+                <button id="qvAddCart" class="btn btn-primary">
+                  <i class="bi bi-cart-plus"></i> ใส่ตะกร้า
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer small text-muted">
+          เคล็ดลับ: กดหัวใจเพื่อบันทึก “ที่อยากได้” ไว้ดูภายหลัง
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+  (function(){
+    const $  = (s, r=document)=>r.querySelector(s);
+    const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
+
+    // navbar shadow
+    const nav=$('.nav-glass');
+    const onScroll=()=>nav&&nav.classList.toggle('scrolled',window.scrollY>8);
+    onScroll(); window.addEventListener('scroll', onScroll);
+
+    // skeleton remove
+    $$('.product-thumb').forEach(img=>{
+      const clear=()=>img.classList.remove('skeleton');
+      img.complete ? clear() : img.addEventListener('load', clear, {once:true});
+      img.addEventListener('error', clear, {once:true});
+    });
+
+    // appear
+    const io=new IntersectionObserver(ents=>{
+      ents.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('appear'); io.unobserve(e.target); } });
+    },{threshold:.15});
+    $$('.product-card').forEach(c=>io.observe(c));
+
+    // Wishlist
+    const WKEY='wishlist_products';
+    const getWish=()=>JSON.parse(localStorage.getItem(WKEY)||'[]');
+    const setWish=(a)=>localStorage.setItem(WKEY, JSON.stringify(a));
+    const toggleWish=(id)=>{let a=getWish(); a=a.includes(id)?a.filter(x=>x!==id):[...a,id]; setWish(a); return a.includes(id);};
+
+    $$('.product-card').forEach(card=>{
+      const id=Number(card.dataset.id);
+      const btn=$('.wishlist', card);
+      if(getWish().includes(id)) btn.classList.add('active');
+      btn?.addEventListener('click', (ev)=>{
+        ev.stopPropagation();
+        const active=toggleWish(id);
+        btn.classList.toggle('active', active);
+        if ($('#wishlistToggle')?.classList.contains('active')) applyFilters();
+        toast(active?'บันทึกไว้ในที่อยากได้แล้ว':'นำออกจากที่อยากได้แล้ว');
+      });
+    });
+
+    // Filters
+    const grid = $('.row.product-list');
+    const searchInput = $('#searchInput');
+    const sortSelect  = $('#sortSelect');
+    const wishToggle  = $('#wishlistToggle');
+    const resultCount = $('#resultCount');
+    const catSelect   = $('#catSelect');
+
+    // ใช้ "คอลัมน์ bootstrap" เป็นหน่วยย้าย
+    const rows = $$('.product-card').map(card=>{
+      const col = card.closest('.col-12');
+      return {
+        col, card,
+        id: Number(card.dataset.id),
+        name: (card.dataset.name||'').toLowerCase(),
+        cat:  (card.dataset.category||'').toLowerCase(),
+        price: Number(card.dataset.price||0),
+        created: new Date(card.dataset.created||0),
+        stock: Number(card.dataset.stock||0),
+      };
+    });
+
+    // เติมตัวเลือกหมวดหมู่แบบไดนามิก
+    (function fillCategories(){
+      if(!catSelect) return;
+      const set = new Set(rows.map(r=>r.cat).filter(Boolean));
+      const cats = Array.from(set).sort((a,b)=>a.localeCompare(b));
+      cats.forEach(c=>{
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        catSelect.appendChild(opt);
+      });
+    })();
+
+    function applyFilters(){
+      const q = (searchInput?.value||'').toLowerCase().trim();
+      const onlyWish = wishToggle?.classList.contains('active');
+      const wishset = new Set(getWish());
+      const cat = (catSelect?.value||'').toLowerCase();
+
+      let filtered = rows.filter(r=>{
+        if (onlyWish && !wishset.has(r.id)) return false;
+        if (cat && r.cat !== cat) return false;
+        return !q || r.name.includes(q) || r.cat.includes(q);
+      });
+
+      switch (sortSelect?.value) {
+        case 'priceAsc':  filtered.sort((a,b)=>a.price-b.price); break;
+        case 'priceDesc': filtered.sort((a,b)=>b.price-a.price); break;
+        case 'stockDesc': filtered.sort((a,b)=>b.stock-a.stock); break;
+        default:          filtered.sort((a,b)=>b.created-a.created);
+      }
+
+      filtered.forEach(r=> grid.appendChild(r.col));
+      rows.forEach(r=>{ r.col.style.display = filtered.includes(r) ? '' : 'none'; });
+
+      if (resultCount) resultCount.textContent = `พบ ${filtered.length} รายการ`;
+    }
+
+    if (wishToggle){
+      const setIcon=()=> wishToggle.innerHTML = wishToggle.classList.contains('active')
+        ? `<i class="bi bi-heart-fill"></i> เฉพาะที่อยากได้`
+        : `<i class="bi bi-heart"></i> เฉพาะที่อยากได้`;
+      setIcon();
+      wishToggle.addEventListener('click', ()=>{ wishToggle.classList.toggle('active'); setIcon(); applyFilters(); });
+    }
+    searchInput?.addEventListener('input', applyFilters);
+    sortSelect?.addEventListener('change', applyFilters);
+    catSelect?.addEventListener('change', applyFilters);
+    applyFilters();
+
+    function flyToCart(imgEl){
+      try{
+        const cartBtn = [...$$('a,button')].find(b=>/ตะกร้าสินค้า|cart\.php/i.test(b.getAttribute('href')||b.textContent||''));
+        if(!imgEl || !cartBtn) return toast('เพิ่มลงตะกร้าแล้ว');
+        const r=imgEl.getBoundingClientRect(), t=cartBtn.getBoundingClientRect();
+        const clone=imgEl.cloneNode(true);
+        Object.assign(clone.style,{position:'fixed', left:r.left+'px', top:r.top+'px',
+          width:r.width+'px', height:r.height+'px', zIndex:1080, transition:'all .7s cubic-bezier(.2,.6,.2,1)'});
+        document.body.appendChild(clone);
+        requestAnimationFrame(()=>{
+          clone.style.left=(t.left+t.width/2-r.width*0.2)+'px';
+          clone.style.top=(t.top+t.height/2-r.height*0.2)+'px';
+          clone.style.width=r.width*0.4+'px';
+          clone.style.height=r.height*0.4+'px';
+          clone.style.opacity='0.2';
+        });
+        setTimeout(()=>clone.remove(),750);
+      }catch{}
+    }
+
+    let toastObj;
+    function toast(msg){
+      const el=$('#liveToast'); if(!el) return alert(msg);
+      $('#toastMsg').textContent=msg;
+      (toastObj ||= new bootstrap.Toast(el,{delay:2000})).show();
+    }
+  })();
+  </script>
 </body>
 </html>

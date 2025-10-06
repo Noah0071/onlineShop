@@ -1,5 +1,5 @@
 <?php 
-    session_start();
+    require 'session_timeout.php'; 
     require_once 'config.php';
 
     $error = '';
@@ -103,8 +103,8 @@
         </div>
 
         <div class="d-grid">
-          <button type="submit" class="btn btn-brand btn-lg">เข้าสู่ระบบ</button>
-          
+          <button type="submit" class="btn btn-brand btn-lg mb-1">เข้าสู่ระบบ</button>
+          <a href="register.php" class="btn btn-brand btn-lg">สมัครบัญชี</a>
         </div>
       </form>
     </div>

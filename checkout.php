@@ -1,5 +1,5 @@
 <?php
-session_start();
+require 'session_timeout.php'; 
 require 'config.php';
 
 // ตรวจสอบว่าผู้ใช้ล็อกอินแล้วหรือยัง

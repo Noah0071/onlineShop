@@ -1,5 +1,5 @@
 <?php
-session_start();
+require 'session_timeout.php'; 
 require 'config.php';
 // ตรวจสอบการล็อกอิน
 if (!isset($_SESSION['user_id'])) {
